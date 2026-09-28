@@ -21,6 +21,10 @@ class Game:
         # В игре это random_piece (случайные фигуры), а в тестах можно
         # передать свою функцию, чтобы фигуры были заранее известны.
         self.next_piece = next_piece
+        self._reset()
+
+    def _reset(self):
+        """Начальное состояние: пустое поле, нулевой счёт, первый уровень."""
         self.board = Board()
         self.current = self.next_piece()  # фигура, которой управляет игрок
         self.score = 0
@@ -29,14 +33,46 @@ class Game:
         self.game_over = False
         self.fall_timer = 0     # сколько мс накопилось до следующего шага падения
 
+    def restart(self):
+        """Начать игру заново."""
+        self._reset()
+
+    def fall_interval(self):
+        """Через сколько мс фигура опускается на клетку сама.
+
+        Уровень 1 — 800 мс, каждый следующий на 70 мс быстрее,
+        но не быстрее 100 мс.
+        """
+        return max(100, 800 - (self.level - 1) * 70)
+
+    def update(self, dt_ms):
+        """Учесть, что прошло dt_ms миллисекунд: при необходимости опустить фигуру.
+
+        Время копится в fall_timer. Каждый раз, когда накопился целый
+        интервал падения, фигура опускается на клетку (или фиксируется,
+        если ниже некуда). Цикл while нужен на случай, если прошло сразу
+        много времени — тогда фигура сделает несколько шагов.
+        """
+        if self.game_over:
+            return
+        self.fall_timer += dt_ms
+        while self.fall_timer >= self.fall_interval() and not self.game_over:
+            self.fall_timer -= self.fall_interval()
+            if not self._try_move(1, 0):
+                self._lock_current()
+
     # --- Команды игрока ---
 
     def move_left(self):
         """Сдвинуть фигуру на клетку влево (если есть место)."""
+        if self.game_over:
+            return  # после конца игры фигурой управлять нельзя
         self._try_move(0, -1)
 
     def move_right(self):
         """Сдвинуть фигуру на клетку вправо (если есть место)."""
+        if self.game_over:
+            return  # после конца игры фигурой управлять нельзя
         self._try_move(0, 1)
 
     def rotate(self):
@@ -46,6 +82,8 @@ class Game:
         на 1 клетку влево, потом на 1 вправо («отталкивание» от стенки).
         Если ничего не подошло — поворот отменяется.
         """
+        if self.game_over:
+            return  # после конца игры фигурой управлять нельзя
         rotated = self.current.rotated()
         for d_col in (0, -1, 1):
             candidate = rotated.moved(0, d_col)
@@ -55,6 +93,8 @@ class Game:
 
     def soft_drop(self):
         """Опустить фигуру на 1 клетку (+1 очко). Если ниже некуда — зафиксировать."""
+        if self.game_over:
+            return  # после конца игры фигурой управлять нельзя
         if self._try_move(1, 0):
             self.score += 1
         else:
@@ -62,6 +102,8 @@ class Game:
 
     def hard_drop(self):
         """Уронить фигуру до упора (+2 очка за каждую клетку) и зафиксировать."""
+        if self.game_over:
+            return  # после конца игры фигурой управлять нельзя
         distance = 0
         while self._try_move(1, 0):
             distance += 1
