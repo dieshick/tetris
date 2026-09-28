@@ -1,6 +1,6 @@
 """Тесты для фигур: формы, поворот, положение на поле."""
 
-from pieces import SHAPES, Piece, rotate_shape
+from pieces import SHAPES, Piece, random_piece, rotate_shape, spawn_piece
 
 
 def test_rotate_t_clockwise():
@@ -34,3 +34,15 @@ def test_moved_and_rotated_do_not_change_original():
     assert rotated.shape == [".X.", ".XX", ".X."]
     # Исходная фигура осталась прежней
     assert (piece.row, piece.col, piece.shape) == (0, 3, SHAPES["T"])
+
+
+def test_spawn_positions():
+    # Фигура появляется в строке 0, по центру поля
+    assert (spawn_piece("O").row, spawn_piece("O").col) == (0, 4)
+    assert spawn_piece("T").col == 3
+    assert spawn_piece("I").col == 3
+
+
+def test_random_piece_is_known_letter():
+    for _ in range(20):
+        assert random_piece().letter in SHAPES

@@ -3,6 +3,10 @@
 Этот модуль ничего не знает про pygame — только данные и простые вычисления.
 """
 
+import random
+
+from board import WIDTH
+
 
 # Формы всех 7 фигур. Каждая форма — это маленькая «картинка» из строк:
 #   "X" — клетка занята блоком,
@@ -93,3 +97,17 @@ class Piece:
     def rotated(self):
         """Новая фигура, повёрнутая на 90° по часовой стрелке (на том же месте)."""
         return Piece(self.letter, rotate_shape(self.shape), self.row, self.col)
+
+
+def spawn_piece(letter):
+    """Новая фигура с буквой letter в точке появления: строка 0, по центру поля."""
+    shape = SHAPES[letter]
+    width = len(shape[0])
+    col = (WIDTH - width) // 2  # например, для O: (10 - 2) // 2 = 4
+    return Piece(letter, shape, 0, col)
+
+
+def random_piece():
+    """Новая случайная фигура в точке появления."""
+    letter = random.choice(list(SHAPES))
+    return spawn_piece(letter)
