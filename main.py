@@ -37,6 +37,29 @@ def handle_key(game, key):
     return True
 
 
+def handle_event(game, event, held_keys):
+    """Обработать одно событие pygame. Возвращает False, если пора выходить.
+
+    held_keys — множество клавиш, которые сейчас зажаты. Оно нужно, чтобы
+    отличить настоящее нажатие от автоповтора: пока клавиша зажата, pygame
+    снова и снова присылает KEYDOWN. Для стрелок это удобно (фигура едет),
+    а для Пробела — нет: иначе зажатый Пробел бросал бы фигуры одну за другой.
+    """
+    if event.type == pygame.QUIT:
+        return False
+    if event.type == pygame.KEYUP:
+        held_keys.discard(event.key)
+        return True
+    if event.type != pygame.KEYDOWN:
+        return True
+
+    is_repeat = event.key in held_keys
+    held_keys.add(event.key)
+    if is_repeat and event.key == pygame.K_SPACE:
+        return True  # повтор Пробела игнорируем
+    return handle_key(game, event.key)
+
+
 def main():
     """Создать окно и крутить главный цикл, пока игрок не выйдет."""
     pygame.init()
@@ -47,6 +70,7 @@ def main():
     pygame.key.set_repeat(170, 50)
     clock = pygame.time.Clock()
     game = Game()
+    held_keys = set()  # клавиши, которые сейчас зажаты
 
     running = True
     while running:
@@ -56,11 +80,8 @@ def main():
 
         # 1. События: клавиши и закрытие окна
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if not handle_event(game, event, held_keys):
                 running = False
-            elif event.type == pygame.KEYDOWN:
-                if not handle_key(game, event.key):
-                    running = False
 
         # 2. Логика: фигура падает со временем
         game.update(dt)
